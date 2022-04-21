@@ -18,8 +18,8 @@ More information about FLAME is available at http://flame.is.tue.mpg.de.
 
 For questions regarding the PyTorch implementation please contact soubhik.sanyal@tuebingen.mpg.de
 """
-import os
-os.environ["PYOPENGL_PLATFORM"] = "egl"
+# import os
+# os.environ["PYOPENGL_PLATFORM"] = "egl"
 # os.environ["PYOPENGL_PLATFORM"] = "osmesa"
 
 import numpy as np
@@ -35,6 +35,7 @@ config = get_config()
 radian = np.pi/180.0
 flamelayer = FLAME(config)
 device = torch.device(f"cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
 print(f"\nDevice: {device}")
 
 # Creating a batch of mean shapes
