@@ -1,2 +1,6 @@
-model/
+# Persona
+model/*npy
+model/*pkl
+
+# General
 __pycache__
