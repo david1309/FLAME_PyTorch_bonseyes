@@ -1,0 +1,16 @@
+{
+    "flame_model_path": "model/generic_model.pkl",
+    "static_landmark_embedding_path": "model/flame_static_embedding.pkl",
+    "dynamic_landmark_embedding_path": "model/flame_dynamic_embedding.npy",
+    "shape_params": 100,
+    "expression_params": 50,
+    "pose_params": 6,
+    "use_face_contour": true,
+    "use_3D_translation": true,
+    "optimize_eyeballpose": true,
+    "optimize_neckpose": true,
+    "num_worker": 4,
+    "batch_size": 8,
+    "ring_margin": 0.5,
+    "ring_loss_weight": 1.0
+}

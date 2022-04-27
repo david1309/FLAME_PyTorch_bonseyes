@@ -1,7 +1,7 @@
 """
 FLAME Layer: Implementation of the 3D Statistical Face model in PyTorch
 
-It is designed in a way to directly plug in as a decoder layer in a 
+It is designed in a way to directly plug in as a decoder layer in a
 Deep learning framework for training and testing
 
 It can also be used for 2D or 3D optimisation applications
@@ -41,8 +41,12 @@ class FLAME(nn.Module):
     def __init__(self, config):
         super(FLAME, self).__init__()
         print("creating the FLAME Decoder")
+
         with open(config.flame_model_path, 'rb') as f:
             self.flame_model = Struct(**pickle.load(f, encoding='latin1'))
+
+        self.device = config.device
+
         self.NECK_IDX = 1
         self.batch_size = config.batch_size
         self.dtype = torch.float32
@@ -54,7 +58,7 @@ class FLAME(nn.Module):
 
         # Fixing remaining Shape betas
         # There are total 300 shape parameters to control FLAME; But one can use the first few parameters to express
-        # the shape. For example 100 shape parameters are used for RingNet project 
+        # the shape. For example 100 shape parameters are used for RingNet project
         default_shape = torch.zeros([self.batch_size, 300-config.shape_params],
                                             dtype=self.dtype, requires_grad=False)
         self.register_parameter('shape_betas', nn.Parameter(default_shape,
@@ -62,7 +66,7 @@ class FLAME(nn.Module):
 
         # Fixing remaining expression betas
         # There are total 100 shape expression parameters to control FLAME; But one can use the first few parameters to express
-        # the expression. For example 50 expression parameters are used for RingNet project 
+        # the expression. For example 50 expression parameters are used for RingNet project
         default_exp = torch.zeros([self.batch_size, 100 - config.expression_params],
                                     dtype=self.dtype, requires_grad=False)
         self.register_parameter('expression_betas', nn.Parameter(default_exp,
@@ -155,6 +159,9 @@ class FLAME(nn.Module):
                 curr_idx = self.parents[curr_idx]
             self.register_buffer('neck_kin_chain',
                                  torch.stack(neck_kin_chain))
+        
+        self.to(self.device)
+        print("... Finished FLAME Decoder creation")
 
     def _find_dynamic_lmk_idx_and_bcoords(self, vertices, pose, dynamic_lmk_faces_idx,
                                          dynamic_lmk_b_coords,
@@ -247,3 +254,51 @@ class FLAME(nn.Module):
             vertices += transl.unsqueeze(dim=1)
 
         return vertices, landmarks
+
+    def vertices2landmarks(self, vertices, use_face_contour=False):
+        """
+            Input:
+                vertices: N X V X 3 (batch) or V X 3 (single sample)
+            return:
+                landmarks: N X number of landmarks X 3;
+                    number of landmarks can be 51 (use_face_contour=False)
+                    or 68 (use_face_contour=True)
+        """
+        if not torch.is_tensor(vertices):
+            vertices = torch.Tensor(vertices)
+        if vertices.ndim != 3:
+            vertices = vertices.unsqueeze(0)
+        vertices = vertices.to(self.device)
+        batch_size = vertices.shape[0]
+
+        lmk_faces_idx = self.lmk_faces_idx.unsqueeze(dim=0).repeat(
+            batch_size, 1)
+        lmk_bary_coords = self.lmk_bary_coords.unsqueeze(dim=0).repeat(
+            batch_size, 1, 1)
+
+        if use_face_contour:  # TODO: how to obtain full_pose without requiring the flame parameters
+
+            dyn_lmk_faces_idx, dyn_lmk_bary_coords = self._find_dynamic_lmk_idx_and_bcoords(
+                    vertices, full_pose, self.dynamic_lmk_faces_idx,
+                    self.dynamic_lmk_bary_coords,
+                    self.neck_kin_chain, dtype=self.dtype
+                )
+
+            lmk_faces_idx = torch.cat([dyn_lmk_faces_idx, lmk_faces_idx], 1)
+            lmk_bary_coords = torch.cat([dyn_lmk_bary_coords, lmk_bary_coords], 1)
+
+        landmarks = vertices2landmarks(
+                            vertices,
+                            self.faces_tensor,
+                            lmk_faces_idx,
+                            lmk_bary_coords
+                            )
+        transl = torch.zeros(
+                                    [batch_size, 3],
+                                    dtype=torch.float32,
+                                    requires_grad=False
+                                ).to(self.device)
+        if self.use_3D_translation:
+            landmarks += transl.unsqueeze(dim=1)
+
+        return landmarks
