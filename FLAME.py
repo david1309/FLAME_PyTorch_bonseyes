@@ -255,7 +255,7 @@ class FLAME(nn.Module):
 
         return vertices, landmarks
 
-    def vertices2landmarks(self, vertices, use_face_contour=False):
+    def flame_vertices2landmarks(self, vertices, use_face_contour=False):
         """
             Input:
                 vertices: N X V X 3 (batch) or V X 3 (single sample)
@@ -294,10 +294,11 @@ class FLAME(nn.Module):
                             lmk_bary_coords
                             )
         transl = torch.zeros(
-                                    [batch_size, 3],
-                                    dtype=torch.float32,
-                                    requires_grad=False
-                                ).to(self.device)
+                            [batch_size, 3],
+                            dtype=torch.float32,
+                            requires_grad=False
+                            ).to(self.device)
+
         if self.use_3D_translation:
             landmarks += transl.unsqueeze(dim=1)
 
