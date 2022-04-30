@@ -124,14 +124,21 @@ class FLAME(nn.Module):
                              to_tensor(to_np(self.flame_model.weights), dtype=self.dtype))
 
         # Static and Dynamic Landmark embeddings for FLAME
+        is_pkl = config.static_landmark_embedding_path.endswith("pkl")
+        if is_pkl:
+            with open(config.static_landmark_embedding_path, 'rb') as f:
+                static_embeddings = Struct(**pickle.load(f, encoding='latin1'))
+            lmk_faces_idx = (static_embeddings.lmk_face_idx).astype(np.int64)
+            lmk_bary_coords = static_embeddings.lmk_b_coords
 
-        with open(config.static_landmark_embedding_path, 'rb') as f:
-            static_embeddings = Struct(**pickle.load(f, encoding='latin1'))
+        else:
+            lmk_embeddings = np.load(config.static_landmark_embedding_path, allow_pickle=True, encoding='latin1')
+            lmk_embeddings = lmk_embeddings[()]
+            lmk_faces_idx = np.squeeze(lmk_embeddings['full_lmk_faces_idx'], axis=0)
+            lmk_bary_coords = np.squeeze(lmk_embeddings['full_lmk_bary_coords'], axis=0)
 
-        lmk_faces_idx = (static_embeddings.lmk_face_idx).astype(np.int64)
         self.register_buffer('lmk_faces_idx',
                              torch.tensor(lmk_faces_idx, dtype=torch.long))
-        lmk_bary_coords = static_embeddings.lmk_b_coords
         self.register_buffer('lmk_bary_coords',
                              torch.tensor(lmk_bary_coords, dtype=self.dtype))
 
