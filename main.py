@@ -32,11 +32,13 @@ from FLAME import FLAME
 from config import get_config
 
 config = get_config()
+device = torch.device(f"cuda" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cpu")
+config.device = device
+print(f"\nDevice: {device}")
 radian = np.pi/180.0
 flamelayer = FLAME(config)
-device = torch.device(f"cuda" if torch.cuda.is_available() else "cpu")
-device = torch.device("cpu")
-print(f"\nDevice: {device}")
+
 
 # Creating a batch of mean shapes
 shape_params = torch.zeros(8, 100).to(device)
